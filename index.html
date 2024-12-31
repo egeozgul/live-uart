@@ -7,15 +7,68 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 20px;
+            background-color: #f0f0f5;
+            color: #333;
         }
-        canvas {
-            max-width: 100%;
-            height: 300px;
+        h1 {
+            text-align: center;
+            color: #444;
         }
         .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            background-color: #fff;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+        }
+        .controls label {
+            margin: 0 20px;
+            font-weight: bold;
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .chart-wrapper {
+            flex: 1;
+            margin-right: 20px;
+        }
+        .chart-controls {
+            flex-shrink: 0;
+            width: 200px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .chart-controls input, .chart-controls select {
+            margin: 5px 0;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 70px;
+        }
+        .chart-controls label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        canvas {
+            width: 100%;
+            height: 300px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         #rawData {
             width: 100%;
@@ -24,7 +77,10 @@
             overflow-y: scroll;
             padding: 10px;
             margin-top: 20px;
-            background-color: #f9f9f9;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-family: monospace;
             white-space: pre-wrap;
         }
     </style>
@@ -33,71 +89,211 @@
     <h1>UART Live Plot</h1>
     <div class="controls">
         <button id="connectButton">Connect to UART Device</button>
-        <label for="yMin">Y-Axis Min:</label>
-        <input type="number" id="yMin" value="-50">
-        <label for="yMax">Y-Axis Max:</label>
-        <input type="number" id="yMax" value="50">
-        <button id="applyLimits">Apply Y-Axis Limits</button>
-        <label for="bufferSize">Buffer Size:</label>
-        <input type="number" id="bufferSize" value="50">
-        <label>
-            <input type="checkbox" id="dynamicYAxis"> Enable Dynamic Y-Axis
-        </label>
-        <label for="pointStyle">Point Style:</label>
-        <select id="pointStyle">
-            <option value="circle">Circle</option>
-            <option value="rect">Rectangle</option>
-            <option value="triangle">Triangle</option>
-            <option value="cross">Cross</option>
-            <option value="star">Star</option>
-        </select>
-        <label>
-            <input type="checkbox" id="showLines" checked> Show Lines
-        </label>
-        <label>
-            <input type="checkbox" id="showPoints" checked> Show Points
-        </label>
     </div>
-    <canvas id="chart"></canvas>
+
+    <div class="chart-container">
+        <div class="chart-wrapper">
+            <canvas id="chart-pos"></canvas>
+        </div>
+        <div class="chart-controls">
+			
+			<div style="display: flex; align-items: center;">
+				<label>Y-Axis Min: </label>
+				<input type="number" id="yMin-pos" value="-50">
+			</div>
+
+			<div style="display: flex; align-items: center;">
+            <label>Y-Axis Max:</label>
+            <input type="number" id="yMax-pos" value="50">
+			</div>
+
+			<div style="display: flex; align-items: center;">
+            <label>Buffer Size:</label>
+            <input type="number" id="bufferSize-pos" value="50">
+			</div>
+
+			<div style="display: flex; align-items: center;">
+            <label>
+                Auto Y-Axis
+            </label>
+			<input type="checkbox" id="dynamicYAxis-pos"> 
+			</div>
+
+			<div style="display: flex; align-items: center;">
+            <label>Point Style:</label>
+            <select id="pointStyle-pos">
+                <option value="circle">Circle</option>
+                <option value="rect">Rectangle</option>
+                <option value="triangle">Triangle</option>
+                <option value="cross">Cross</option>
+                <option value="star">Star</option>
+            </select>
+			</div>
+
+			<div style="display: flex; align-items: center;">
+			Show Lines
+            <label>
+                <input type="checkbox" id="showLines-pos" checked>
+            </label>
+			</div>
+
+			<div style="display: flex; align-items: center;">
+			Show Points
+            <label>
+                <input type="checkbox" id="showPoints-pos" checked>
+            </label>
+			</div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-wrapper">
+            <canvas id="chart-amps"></canvas>
+        </div>
+        <div class="chart-controls">
+		
+			<div style="display: flex; align-items: center;">
+            <label>Y-Axis Min:</label>
+            <input type="number" id="yMin-amps" value="-50">
+            </div>
+						
+			<div style="display: flex; align-items: center;">
+			<label>Y-Axis Max:</label>
+            <input type="number" id="yMax-amps" value="50">
+            </div>
+			
+			<div style="display: flex; align-items: center;">
+			<label>Buffer Size:</label>
+            <input type="number" id="bufferSize-amps" value="50">
+            </div>
+			
+			<div style="display: flex; align-items: center;">			
+			<label>Auto Y-Axis</label>
+                <input type="checkbox" id="dynamicYAxis-amps">
+            </div>
+			
+			<div style="display: flex; align-items: center;">			
+			<label>Point Style:</label>
+            <select id="pointStyle-amps">
+                <option value="circle">Circle</option>
+                <option value="rect">Rectangle</option>
+                <option value="triangle">Triangle</option>
+                <option value="cross">Cross</option>
+                <option value="star">Star</option>
+            </select>
+            </div>
+			
+			<div style="display: flex; align-items: center;">			
+			<label>Show Lines</label>
+                <input type="checkbox" id="showLines-amps" checked>
+			</div>
+
+			<div style="display: flex; align-items: center;">
+            <label>Show Points</label>
+                <input type="checkbox" id="showPoints-amps" checked>
+			</div>
+			
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-wrapper">
+            <canvas id="chart-tps"></canvas>
+        </div>
+		<div class="chart-controls">
+            
+			<div style="display: flex; align-items: center;">
+			<label>Y-Axis Min:</label>
+            <input type="number" id="yMin-tps" value="-50">
+            </div>
+			
+			<div style="display: flex; align-items: center;">
+			<label>Y-Axis Max:</label>
+            <input type="number" id="yMax-tps" value="50">
+            </div>
+			
+			<div style="display: flex; align-items: center;">
+			<label>Buffer Size:</label>
+            <input type="number" id="bufferSize-tps" value="50">
+            </div>
+			
+			<div style="display: flex; align-items: center;">
+			<label>Auto Y-Axis</label>
+			<input type="checkbox" id="dynamicYAxis-tps">
+            </div>
+			
+			<div style="display: flex; align-items: center;">
+			<label>Point Style:</label>
+            <select id="pointStyle-tps">
+                <option value="circle">Circle</option>
+                <option value="rect">Rectangle</option>
+                <option value="triangle">Triangle</option>
+                <option value="cross">Cross</option>
+                <option value="star">Star</option>
+            </select>
+            </div>
+			
+			<div style="display: flex; align-items: center;">
+			
+			<label>Show Lines</label>
+                <input type="checkbox" id="showLines-tps" checked>
+            </div>
+			
+			<div style="display: flex; align-items: center;">
+			<label>Show Points</label>
+                <input type="checkbox" id="showPoints-tps" checked>
+			</div>
+        </div>
+    </div>
+
     <div id="rawData"></div>
 
-    <script>
-        const connectButton = document.getElementById('connectButton');
-        const applyLimitsButton = document.getElementById('applyLimits');
-        const yMinInput = document.getElementById('yMin');
-        const yMaxInput = document.getElementById('yMax');
-        const bufferSizeInput = document.getElementById('bufferSize');
-        const dynamicYAxisCheckbox = document.getElementById('dynamicYAxis');
-        const pointStyleSelect = document.getElementById('pointStyle');
-        const showLinesCheckbox = document.getElementById('showLines');
-        const showPointsCheckbox = document.getElementById('showPoints');
-        const rawDataDiv = document.getElementById('rawData');
-        const chartCtx = document.getElementById('chart').getContext('2d');
 
-        const chart = new Chart(chartCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    { label: 'pos', data: [], borderColor: 'red', fill: false, pointStyle: 'circle', showLine: true },
-                    { label: 'amps', data: [], borderColor: 'blue', fill: false, pointStyle: 'circle', showLine: true },
-                    { label: 'tps', data: [], borderColor: 'green', fill: false, pointStyle: 'circle', showLine: true }
-                ]
-            },
-            options: {
-                responsive: false,
-                maintainAspectRatio: false,
-                animation: false,
-                scales: {
-                    x: { title: { display: true, text: 'Time (s)' } },
-                    y: {
-                        title: { display: true, text: 'Values' },
-                        min: -50,
-                        max: 50
+    <script>
+        function createChart(ctx, label, color) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        pointRadius: 3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+					animation: false,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            title: { display: true, text: `${label} Values` },
+                            grid: { color: `${color}33` }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${label}: ${context.raw}`
+                            }
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
+
+        const chartPos = createChart(document.getElementById('chart-pos').getContext('2d'), 'Position (pos)', 'red');
+        const chartAmps = createChart(document.getElementById('chart-amps').getContext('2d'), 'Amperage (amps)', 'blue');
+        const chartTps = createChart(document.getElementById('chart-tps').getContext('2d'), 'TPS (tps)', 'green');
+
+        const rawDataDiv = document.getElementById('rawData');
 
         async function connectToDevice() {
             try {
@@ -139,64 +335,39 @@
                 const amps = parseFloat(match[3]);
                 const tps = parseFloat(match[5]);
 
-                updateChart(time, pos, amps, tps);
+                updateChart(chartPos, time, pos);
+                updateChart(chartAmps, time, amps);
+                updateChart(chartTps, time, tps);
             }
         }
 
-        function updateChart(time, pos, amps, tps) {
-            const bufferSize = parseInt(bufferSizeInput.value, 10);
+        function updateChart(chart, time, value) {
+            const bufferSize = parseInt(document.getElementById(`bufferSize-${chart.canvas.id.split('-')[1]}`).value);
             if (chart.data.labels.length >= bufferSize) {
                 chart.data.labels.shift();
-                chart.data.datasets.forEach(dataset => dataset.data.shift());
+                chart.data.datasets[0].data.shift();
             }
 
             chart.data.labels.push(time.toFixed(2));
-            chart.data.datasets[0].data.push(pos);
-            chart.data.datasets[1].data.push(amps);
-            chart.data.datasets[2].data.push(tps);
+            chart.data.datasets[0].data.push(value);
 
-            if (dynamicYAxisCheckbox.checked) {
-                const allData = chart.data.datasets.flatMap(dataset => dataset.data);
-                chart.options.scales.y.min = Math.min(...allData) - 5;
-                chart.options.scales.y.max = Math.max(...allData) + 5;
+            const dynamicYAxis = document.getElementById(`dynamicYAxis-${chart.canvas.id.split('-')[1]}`).checked;
+            if (dynamicYAxis) {
+                chart.options.scales.y.min = Math.min(...chart.data.datasets[0].data) - 0;
+                chart.options.scales.y.max = Math.max(...chart.data.datasets[0].data) + 0;
+            } else {
+                chart.options.scales.y.min = parseFloat(document.getElementById(`yMin-${chart.canvas.id.split('-')[1]}`).value);
+                chart.options.scales.y.max = parseFloat(document.getElementById(`yMax-${chart.canvas.id.split('-')[1]}`).value);
             }
+
+            chart.data.datasets[0].pointStyle = document.getElementById(`pointStyle-${chart.canvas.id.split('-')[1]}`).value;
+            chart.data.datasets[0].showLine = document.getElementById(`showLines-${chart.canvas.id.split('-')[1]}`).checked;
+            chart.data.datasets[0].pointRadius = document.getElementById(`showPoints-${chart.canvas.id.split('-')[1]}`).checked ? 3 : 0;
 
             chart.update();
         }
 
-        pointStyleSelect.addEventListener('change', () => {
-            const selectedStyle = pointStyleSelect.value;
-            chart.data.datasets.forEach(dataset => {
-                dataset.pointStyle = selectedStyle;
-            });
-            chart.update();
-        });
-
-        showLinesCheckbox.addEventListener('change', () => {
-            const showLines = showLinesCheckbox.checked;
-            chart.data.datasets.forEach(dataset => {
-                dataset.showLine = showLines;
-            });
-            chart.update();
-        });
-
-        showPointsCheckbox.addEventListener('change', () => {
-            const showPoints = showPointsCheckbox.checked;
-            chart.data.datasets.forEach(dataset => {
-                dataset.pointRadius = showPoints ? 3 : 0;
-            });
-            chart.update();
-        });
-
-        applyLimitsButton.addEventListener('click', () => {
-            const yMin = parseFloat(yMinInput.value);
-            const yMax = parseFloat(yMaxInput.value);
-            chart.options.scales.y.min = yMin;
-            chart.options.scales.y.max = yMax;
-            chart.update();
-        });
-
-        connectButton.addEventListener('click', connectToDevice);
+        document.getElementById('connectButton').addEventListener('click', connectToDevice);
     </script>
 </body>
 </html>
