@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UART Live Plot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        canvas {
+            max-width: 100%;
+            height: 300px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        #rawData {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ccc;
+            overflow-y: scroll;
+            padding: 10px;
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>UART Live Plot</h1>
+    <div class="controls">
+        <button id="connectButton">Connect to UART Device</button>
+        <label for="yMin">Y-Axis Min:</label>
+        <input type="number" id="yMin" value="-50">
+        <label for="yMax">Y-Axis Max:</label>
+        <input type="number" id="yMax" value="50">
+        <button id="applyLimits">Apply Y-Axis Limits</button>
+        <label for="bufferSize">Buffer Size:</label>
+        <input type="number" id="bufferSize" value="50">
+        <label>
+            <input type="checkbox" id="dynamicYAxis"> Enable Dynamic Y-Axis
+        </label>
+        <label for="pointStyle">Point Style:</label>
+        <select id="pointStyle">
+            <option value="circle">Circle</option>
+            <option value="rect">Rectangle</option>
+            <option value="triangle">Triangle</option>
+            <option value="cross">Cross</option>
+            <option value="star">Star</option>
+        </select>
+        <label>
+            <input type="checkbox" id="showLines" checked> Show Lines
+        </label>
+        <label>
+            <input type="checkbox" id="showPoints" checked> Show Points
+        </label>
+    </div>
+    <canvas id="chart"></canvas>
+    <div id="rawData"></div>
+
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const applyLimitsButton = document.getElementById('applyLimits');
+        const yMinInput = document.getElementById('yMin');
+        const yMaxInput = document.getElementById('yMax');
+        const bufferSizeInput = document.getElementById('bufferSize');
+        const dynamicYAxisCheckbox = document.getElementById('dynamicYAxis');
+        const pointStyleSelect = document.getElementById('pointStyle');
+        const showLinesCheckbox = document.getElementById('showLines');
+        const showPointsCheckbox = document.getElementById('showPoints');
+        const rawDataDiv = document.getElementById('rawData');
+        const chartCtx = document.getElementById('chart').getContext('2d');
+
+        const chart = new Chart(chartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'pos', data: [], borderColor: 'red', fill: false, pointStyle: 'circle', showLine: true },
+                    { label: 'amps', data: [], borderColor: 'blue', fill: false, pointStyle: 'circle', showLine: true },
+                    { label: 'tps', data: [], borderColor: 'green', fill: false, pointStyle: 'circle', showLine: true }
+                ]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    x: { title: { display: true, text: 'Time (s)' } },
+                    y: {
+                        title: { display: true, text: 'Values' },
+                        min: -50,
+                        max: 50
+                    }
+                }
+            }
+        });
+
+        async function connectToDevice() {
+            try {
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+
+                const decoder = new TextDecoderStream();
+                const readableStreamClosed = port.readable.pipeTo(decoder.writable);
+                const reader = decoder.readable.getReader();
+
+                let startTime = Date.now();
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    if (value) {
+                        displayRawData(value);
+                        processLine(value, (Date.now() - startTime) / 1000);
+                    }
+                }
+
+                reader.releaseLock();
+            } catch (error) {
+                console.error('Error connecting to UART device:', error);
+                alert('Failed to connect to UART device.');
+            }
+        }
+
+        function displayRawData(data) {
+            rawDataDiv.textContent += data.replace(/\n/g, '\n');
+            rawDataDiv.scrollTop = rawDataDiv.scrollHeight;
+        }
+
+        function processLine(line, time) {
+            const match = line.match(/pos (-?\d+(\.\d+)?),amps (-?\d+(\.\d+)?),tps (-?\d+(\.\d+)?)/);
+            if (match) {
+                const pos = parseFloat(match[1]);
+                const amps = parseFloat(match[3]);
+                const tps = parseFloat(match[5]);
+
+                updateChart(time, pos, amps, tps);
+            }
+        }
+
+        function updateChart(time, pos, amps, tps) {
+            const bufferSize = parseInt(bufferSizeInput.value, 10);
+            if (chart.data.labels.length >= bufferSize) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            chart.data.labels.push(time.toFixed(2));
+            chart.data.datasets[0].data.push(pos);
+            chart.data.datasets[1].data.push(amps);
+            chart.data.datasets[2].data.push(tps);
+
+            if (dynamicYAxisCheckbox.checked) {
+                const allData = chart.data.datasets.flatMap(dataset => dataset.data);
+                chart.options.scales.y.min = Math.min(...allData) - 5;
+                chart.options.scales.y.max = Math.max(...allData) + 5;
+            }
+
+            chart.update();
+        }
+
+        pointStyleSelect.addEventListener('change', () => {
+            const selectedStyle = pointStyleSelect.value;
+            chart.data.datasets.forEach(dataset => {
+                dataset.pointStyle = selectedStyle;
+            });
+            chart.update();
+        });
+
+        showLinesCheckbox.addEventListener('change', () => {
+            const showLines = showLinesCheckbox.checked;
+            chart.data.datasets.forEach(dataset => {
+                dataset.showLine = showLines;
+            });
+            chart.update();
+        });
+
+        showPointsCheckbox.addEventListener('change', () => {
+            const showPoints = showPointsCheckbox.checked;
+            chart.data.datasets.forEach(dataset => {
+                dataset.pointRadius = showPoints ? 3 : 0;
+            });
+            chart.update();
+        });
+
+        applyLimitsButton.addEventListener('click', () => {
+            const yMin = parseFloat(yMinInput.value);
+            const yMax = parseFloat(yMaxInput.value);
+            chart.options.scales.y.min = yMin;
+            chart.options.scales.y.max = yMax;
+            chart.update();
+        });
+
+        connectButton.addEventListener('click', connectToDevice);
+    </script>
+</body>
+</html>
