@@ -3,34 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UART Live Plot</title>
+    <title>Dynamic UART Live Plot</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --background-color: #f0f0f5;
+            --text-color: #333;
+            --control-bg: #fff;
+            --control-border: #ccc;
+            --button-bg: #007bff;
+            --button-bg-hover: #0056b3;
+        }
+
         body {
             font-family: 'Roboto', sans-serif;
             margin: 20px;
-            background-color: #f0f0f5;
-            color: #333;
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
         h1 {
             text-align: center;
-            color: #444;
+            color: var(--text-color);
         }
         .controls {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-around;
             align-items: center;
-            background-color: #fff;
+            background-color: var(--control-bg);
             padding: 15px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--control-border);
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
-        .controls label {
-            margin: 0 20px;
-            font-weight: bold;
+        .controls button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background-color: var(--button-bg-hover);
         }
         .chart-container {
             display: flex;
@@ -45,255 +62,319 @@
         }
         .chart-controls {
             flex-shrink: 0;
-            width: 200px;
+            width: 250px;
             background-color: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+        .chart-controls label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
         .chart-controls input, .chart-controls select {
-            margin: 5px 0;
+            margin-left: 10px;
             padding: 5px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            width: 70px;
-        }
-        .chart-controls label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
         }
         canvas {
             width: 100%;
             height: 300px;
-            background-color: #fff;
+            background-color: var(--control-bg);
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         #rawData {
             width: 100%;
             height: 200px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--control-border);
             overflow-y: scroll;
             padding: 10px;
             margin-top: 20px;
-            background-color: #fff;
+            background-color: var(--control-bg);
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             font-family: monospace;
             white-space: pre-wrap;
         }
+        .theme-toggle {
+            margin: 10px;
+            padding: 10px 15px;
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .theme-toggle:hover {
+            background-color: var(--button-bg-hover);
+        }
     </style>
 </head>
 <body>
-    <h1>UART Live Plot</h1>
+    <h1>Dynamic UART Live Plot</h1>
     <div class="controls">
         <button id="connectButton">Connect to UART Device</button>
+        <button id="addPlotButton">Add Plot</button>
+        <button id="themeToggleButton" class="theme-toggle">Toggle Theme</button>
     </div>
 
-    <div class="chart-container">
-        <div class="chart-wrapper">
-            <canvas id="chart-pos"></canvas>
-        </div>
-        <div class="chart-controls">
-			
-			<div style="display: flex; align-items: center;">
-				<label>Y-Axis Min: </label>
-				<input type="number" id="yMin-pos" value="-50">
-			</div>
-
-			<div style="display: flex; align-items: center;">
-            <label>Y-Axis Max:</label>
-            <input type="number" id="yMax-pos" value="50">
-			</div>
-
-			<div style="display: flex; align-items: center;">
-            <label>Auto Y-Axis</label>
-			<input type="checkbox" id="dynamicYAxis-pos" checked> 
-			</div>
-
-			<div style="display: flex; align-items: center;">
-            <label>Buffer Size:</label>
-            <input type="number" id="bufferSize-pos" value="150">
-			</div>
-
-			<div style="display: flex; align-items: center;">
-            <label>Point Style:</label>
-            <select id="pointStyle-pos">
-                <option value="circle">Circle</option>
-                <option value="rect">Rectangle</option>
-                <option value="triangle">Triangle</option>
-                <option value="cross">Cross</option>
-                <option value="star">Star</option>
-            </select>
-			</div>
-
-			<div style="display: flex; align-items: center;">
-			Show Lines
-            <label>
-                <input type="checkbox" id="showLines-pos" checked>
-            </label>
-			</div>
-
-			<div style="display: flex; align-items: center;">
-			Show Points
-            <label>
-                <input type="checkbox" id="showPoints-pos" checked>
-            </label>
-			</div>
-        </div>
-    </div>
-
-    <div class="chart-container">
-        <div class="chart-wrapper">
-            <canvas id="chart-amps"></canvas>
-        </div>
-        <div class="chart-controls">
-		
-			<div style="display: flex; align-items: center;">
-            <label>Y-Axis Min:</label>
-            <input type="number" id="yMin-amps" value="-50">
-            </div>
-						
-			<div style="display: flex; align-items: center;">
-			<label>Y-Axis Max:</label>
-            <input type="number" id="yMax-amps" value="50">
-            </div>
-			
-			<div style="display: flex; align-items: center;">			
-			<label>Auto Y-Axis</label>
-                <input type="checkbox" id="dynamicYAxis-amps" checked>
-            </div>
-			
-			<div style="display: flex; align-items: center;">
-			<label>Buffer Size:</label>
-            <input type="number" id="bufferSize-amps" value="150">
-            </div>
-			
-			<div style="display: flex; align-items: center;">			
-			<label>Point Style:</label>
-            <select id="pointStyle-amps">
-                <option value="circle">Circle</option>
-                <option value="rect">Rectangle</option>
-                <option value="triangle">Triangle</option>
-                <option value="cross">Cross</option>
-                <option value="star">Star</option>
-            </select>
-            </div>
-			
-			<div style="display: flex; align-items: center;">			
-			<label>Show Lines</label>
-                <input type="checkbox" id="showLines-amps" checked>
-			</div>
-
-			<div style="display: flex; align-items: center;">
-            <label>Show Points</label>
-                <input type="checkbox" id="showPoints-amps" checked>
-			</div>
-			
-        </div>
-    </div>
-
-    <div class="chart-container">
-        <div class="chart-wrapper">
-            <canvas id="chart-tps"></canvas>
-        </div>
-		<div class="chart-controls">
-            
-			<div style="display: flex; align-items: center;">
-			<label>Y-Axis Min:</label>
-            <input type="number" id="yMin-tps" value="-50">
-            </div>
-			
-			<div style="display: flex; align-items: center;">
-			<label>Y-Axis Max:</label>
-            <input type="number" id="yMax-tps" value="50">
-            </div>
-			
-			<div style="display: flex; align-items: center;">
-			<label>Auto Y-Axis</label>
-			<input type="checkbox" id="dynamicYAxis-tps" checked>
-            </div>
-			
-			<div style="display: flex; align-items: center;">
-			<label>Buffer Size:</label>
-            <input type="number" id="bufferSize-tps" value="150">
-            </div>
-			
-			<div style="display: flex; align-items: center;">
-			<label>Point Style:</label>
-            <select id="pointStyle-tps">
-                <option value="circle">Circle</option>
-                <option value="rect">Rectangle</option>
-                <option value="triangle">Triangle</option>
-                <option value="cross">Cross</option>
-                <option value="star">Star</option>
-            </select>
-            </div>
-			
-			<div style="display: flex; align-items: center;">
-			
-			<label>Show Lines</label>
-                <input type="checkbox" id="showLines-tps" checked>
-            </div>
-			
-			<div style="display: flex; align-items: center;">
-			<label>Show Points</label>
-                <input type="checkbox" id="showPoints-tps" checked>
-			</div>
-        </div>
-    </div>
-
+    <div id="plotsContainer"></div>
     <div id="rawData"></div>
+	
+	<div class=".recording-section">
+		<button id="recordButton">Start Recording</button>
+		<input type="text" id="fileName" placeholder="Enter file name (e.g., log.txt)">
+		<button id="saveButton" disabled>Save and Download</button>
+    </div>
+
+<script>
+
+		let isRecording = false;
+		let recordedData = [];
+		
+		function toggleRecording() {
+    if (isRecording) {
+        isRecording = false;
+        document.getElementById('recordButton').textContent = 'Start Recording';
+    } else {
+        isRecording = true;
+        document.getElementById('recordButton').textContent = 'Stop Recording';
+    }
+    updateSaveButtonState(); // Call here
+}
+
+		
+		document.getElementById('recordButton').addEventListener('click', toggleRecording);
+
+		function saveData() {
+			const fileName = document.getElementById('fileName').value || 'uart_log.txt';
+			const blob = new Blob([recordedData.join('')], { type: 'text/plain' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = fileName;
+			a.click();
+			URL.revokeObjectURL(url);
+		}
+
+		document.getElementById('saveButton').addEventListener('click', saveData);
+		
+function updateSaveButtonState() {
+    const saveButton = document.getElementById('saveButton');
+    saveButton.disabled = isRecording;
+}
 
 
-    <script>
-        function createChart(ctx, label, color) {
-            return new Chart(ctx, {
+
+
+
+        const plotsContainer = document.getElementById('plotsContainer');
+        const connectButton = document.getElementById('connectButton');
+        const addPlotButton = document.getElementById('addPlotButton');
+        const themeToggleButton = document.getElementById('themeToggleButton');
+        const rawDataDiv = document.getElementById('rawData');
+
+        const chartMap = new Map();
+        let chartId = 0;
+
+        let isDarkTheme = false;
+
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            if (isDarkTheme) {
+                document.documentElement.style.setProperty('--background-color', '#333');
+                document.documentElement.style.setProperty('--text-color', '#f0f0f5');
+                document.documentElement.style.setProperty('--control-bg', '#444');
+                document.documentElement.style.setProperty('--control-border', '#555');
+                document.documentElement.style.setProperty('--button-bg', '#5555ff');
+                document.documentElement.style.setProperty('--button-bg-hover', '#3333ff');
+            } else {
+                document.documentElement.style.setProperty('--background-color', '#f0f0f5');
+                document.documentElement.style.setProperty('--text-color', '#333');
+                document.documentElement.style.setProperty('--control-bg', '#fff');
+                document.documentElement.style.setProperty('--control-border', '#ccc');
+                document.documentElement.style.setProperty('--button-bg', '#007bff');
+                document.documentElement.style.setProperty('--button-bg-hover', '#0056b3');
+            }
+        }
+
+        themeToggleButton.addEventListener('click', toggleTheme);
+
+        function createChart() {
+            const id = `chart-${chartId++}`;
+
+            const container = document.createElement('div');
+            container.className = 'chart-container';
+            container.id = id;
+
+            const chartWrapper = document.createElement('div');
+            chartWrapper.className = 'chart-wrapper';
+            const canvas = document.createElement('canvas');
+            canvas.id = `${id}-canvas`;
+            chartWrapper.appendChild(canvas);
+
+            const controls = document.createElement('div');
+            controls.className = 'chart-controls';
+
+            controls.innerHTML = `
+                <label for="dataKey-${id}">
+                    Data Key:
+                    <input type="text" id="dataKey-${id}" placeholder="Enter key (e.g., pos)">
+                </label>
+                <label for="unit-${id}">
+                    Units:
+                    <input type="text" id="unit-${id}" placeholder="Enter units (e.g., m/s)">
+                </label>
+                <label for="yMin-${id}">
+                    Y-Axis Min:
+                    <input type="number" id="yMin-${id}" value="-50">
+                </label>
+                <label for="yMax-${id}">
+                    Y-Axis Max:
+                    <input type="number" id="yMax-${id}" value="50">
+                </label>
+                <label for="autoYAxis-${id}">
+                    Auto Y-Axis:
+                    <input type="checkbox" id="autoYAxis-${id}" checked>
+                </label>
+                <label for="bufferSize-${id}">
+                    Buffer Size:
+                    <input type="number" id="bufferSize-${id}" value="150">
+                </label>
+                <label for="pointStyle-${id}">
+                    Point Style:
+                    <select id="pointStyle-${id}">
+                        <option value="circle">Circle</option>
+                        <option value="rect">Rectangle</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="cross">Cross</option>
+                        <option value="star">Star</option>
+                    </select>
+                </label>
+                <label for="showLines-${id}">
+                    Show Lines:
+                    <input type="checkbox" id="showLines-${id}" checked>
+                </label>
+                <label for="showPoints-${id}">
+                    Show Points:
+                    <input type="checkbox" id="showPoints-${id}" checked>
+                </label>
+                <button onclick="removePlot('${id}')">Remove Plot</button>
+            `;
+
+            container.appendChild(chartWrapper);
+            container.appendChild(controls);
+            plotsContainer.appendChild(container);
+
+            const ctx = canvas.getContext('2d');
+            const chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: label,
+                        label: '',
                         data: [],
-                        borderColor: color,
+                        borderColor: getRandomColor(),
                         pointRadius: 3,
                         fill: true
                     }]
                 },
                 options: {
                     responsive: true,
-					animation: false,
+                    animation: false,
                     maintainAspectRatio: false,
                     scales: {
                         x: {
                             title: { display: true, text: 'Time (s)' },
-                            grid: { display: false }
+                            grid: { display: false },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
                         },
                         y: {
-                            title: { display: true, text: `${label} Values` },
-                            grid: { color: `${color}33` }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: context => `${label}: ${context.raw}`
-                            }
+                            title: { display: true, text: '' },
+                            grid: { color: '#cccccc33' }
                         }
                     }
                 }
             });
+
+            chartMap.set(id, chart);
         }
 
-        const chartPos = createChart(document.getElementById('chart-pos').getContext('2d'), 'Position (pos)', 'red');
-        const chartAmps = createChart(document.getElementById('chart-amps').getContext('2d'), 'Amperage (amps)', 'blue');
-        const chartTps = createChart(document.getElementById('chart-tps').getContext('2d'), 'TPS (tps)', 'green');
+        function removePlot(id) {
+            const container = document.getElementById(id);
+            if (container) {
+                container.remove();
+                chartMap.delete(id);
+            }
+        }
 
-        const rawDataDiv = document.getElementById('rawData');
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
 
-        async function connectToDevice() {
+        function processData(line, time) {
+            const regex = /([a-zA-Z]+)\s(-?\d+(\.\d+)?)/g;
+            let match;
+
+            while ((match = regex.exec(line)) !== null) {
+                const key = match[1];
+                const value = parseFloat(match[2]);
+
+                chartMap.forEach((chart, id) => {
+                    const dataKey = document.getElementById(`dataKey-${id}`).value;
+                    const unit = document.getElementById(`unit-${id}`).value;
+
+                    if (dataKey === key) {
+                        const title = `${dataKey} (${unit})`;
+                        chart.data.datasets[0].label = title;
+                        chart.options.scales.y.title.text = title;
+                        updateChart(chart, time, value, id);
+                    }
+                });
+            }
+        }
+
+        function updateChart(chart, time, value, id) {
+            const bufferSize = parseInt(document.getElementById(`bufferSize-${id}`).value);
+            const autoYAxis = document.getElementById(`autoYAxis-${id}`).checked;
+
+            if (chart.data.labels.length >= bufferSize) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.data.labels.push(time.toFixed(2));
+            chart.data.datasets[0].data.push(value);
+
+            if (autoYAxis) {
+                chart.options.scales.y.min = Math.min(...chart.data.datasets[0].data) - 5;
+                chart.options.scales.y.max = Math.max(...chart.data.datasets[0].data) + 5;
+            } else {
+                chart.options.scales.y.min = parseFloat(document.getElementById(`yMin-${id}`).value);
+                chart.options.scales.y.max = parseFloat(document.getElementById(`yMax-${id}`).value);
+            }
+
+            chart.data.datasets[0].pointStyle = document.getElementById(`pointStyle-${id}`).value;
+            chart.data.datasets[0].showLine = document.getElementById(`showLines-${id}`).checked;
+            chart.data.datasets[0].pointRadius = document.getElementById(`showPoints-${id}`).checked ? 3 : 0;
+
+            chart.update();
+        }
+
+        addPlotButton.addEventListener('click', createChart);
+
+        connectButton.addEventListener('click', async () => {
             try {
                 const port = await navigator.serial.requestPort();
                 await port.open({ baudRate: 9600 });
@@ -307,10 +388,15 @@
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
-
                     if (value) {
-                        displayRawData(value);
-                        processLine(value, (Date.now() - startTime) / 1000);
+                        rawDataDiv.textContent += value.replace(/\n/g, '\n');
+                        rawDataDiv.scrollTop = rawDataDiv.scrollHeight;
+                        processData(value, (Date.now() - startTime) / 1000);
+												
+						if (isRecording) {
+							recordedData.push(value);
+						}
+						updateSaveButtonState(); // Call here to update the button state
                     }
                 }
 
@@ -319,53 +405,9 @@
                 console.error('Error connecting to UART device:', error);
                 alert('Failed to connect to UART device.');
             }
-        }
-
-        function displayRawData(data) {
-            rawDataDiv.textContent += data.replace(/\n/g, '\n');
-            rawDataDiv.scrollTop = rawDataDiv.scrollHeight;
-        }
-
-        function processLine(line, time) {
-            const match = line.match(/pos (-?\d+(\.\d+)?),amps (-?\d+(\.\d+)?),tps (-?\d+(\.\d+)?)/);
-            if (match) {
-                const pos = parseFloat(match[1]);
-                const amps = parseFloat(match[3]);
-                const tps = parseFloat(match[5]);
-
-                updateChart(chartPos, time, pos);
-                updateChart(chartAmps, time, amps);
-                updateChart(chartTps, time, tps);
-            }
-        }
-
-        function updateChart(chart, time, value) {
-            const bufferSize = parseInt(document.getElementById(`bufferSize-${chart.canvas.id.split('-')[1]}`).value);
-            if (chart.data.labels.length >= bufferSize) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-
-            chart.data.labels.push(time.toFixed(2));
-            chart.data.datasets[0].data.push(value);
-
-            const dynamicYAxis = document.getElementById(`dynamicYAxis-${chart.canvas.id.split('-')[1]}`).checked;
-            if (dynamicYAxis) {
-                chart.options.scales.y.min = Math.min(...chart.data.datasets[0].data) - 0;
-                chart.options.scales.y.max = Math.max(...chart.data.datasets[0].data) + 0;
-            } else {
-                chart.options.scales.y.min = parseFloat(document.getElementById(`yMin-${chart.canvas.id.split('-')[1]}`).value);
-                chart.options.scales.y.max = parseFloat(document.getElementById(`yMax-${chart.canvas.id.split('-')[1]}`).value);
-            }
-
-            chart.data.datasets[0].pointStyle = document.getElementById(`pointStyle-${chart.canvas.id.split('-')[1]}`).value;
-            chart.data.datasets[0].showLine = document.getElementById(`showLines-${chart.canvas.id.split('-')[1]}`).checked;
-            chart.data.datasets[0].pointRadius = document.getElementById(`showPoints-${chart.canvas.id.split('-')[1]}`).checked ? 3 : 0;
-
-            chart.update();
-        }
-
-        document.getElementById('connectButton').addEventListener('click', connectToDevice);
+        });
     </script>
+
+    
 </body>
 </html>
