@@ -204,7 +204,8 @@ function updateSaveButtonState() {
 
         themeToggleButton.addEventListener('click', toggleTheme);
 
-        function createChart() {
+        function createChart() 
+		{
             const id = `chart-${chartId++}`;
 
             const container = document.createElement('div');
@@ -305,6 +306,7 @@ function updateSaveButtonState() {
 
             chartMap.set(id, chart);
         }
+        createChart();
 
         function removePlot(id) {
             const container = document.getElementById(id);
